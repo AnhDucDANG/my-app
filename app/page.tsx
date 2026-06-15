@@ -1,65 +1,91 @@
-import Image from "next/image";
+'use client';
+
+import { useEffect, useRef } from 'react';
+import VideoCard from './components/VideoCard';
+import Sidebar from './components/Sidebar';
+
+const videos = [
+    {
+      id: 1,
+      videoUrl: "https://www.pexels.com/vi-vn/download/video/37863867/",
+      authorName: "Afham Hamsyari",
+      description: "Cảnh sắc mùa thu tuyệt đẹp của làng quê và núi non",
+      likesCount: 23,
+      commentsCount: "123"
+     
+    },
+    {
+      id: 2,
+      videoUrl:
+        "https://www.pexels.com/vi-vn/download/video/37539936/",
+      authorName: "Florian Delémont",
+      description: "Trải nghiệm chuyến du ngoạn yên bình trên sông Seine giữa những công trình kiến ​​trúc lịch sử",
+      likesCount: 45,
+      commentsCount: "123"
+    },
+    {
+      id: 3,
+      videoUrl: "https://www.pexels.com/vi-vn/download/video/34782067/",
+      authorName: "Sven Lachmann",
+      description: "Đường phố sôi động ở Mexico với những biểu ngữ đầy màu sắc và kiến trúc mộc mạc.",
+      likesCount: 56,
+      commentsCount: "123"
+    },
+  ];
 
 export default function Home() {
+  const containerRef = useRef<HTMLDivElement>(null);
+
+  // ĐIỂM CỘNG: TỰ ĐỘNG PLAY / PAUSE KHI CUỘN ĐẾN (Intersection Observer API)
+  useEffect(() => {
+    const observerOptions = {
+      root: containerRef.current, // Phạm vi theo dõi cuộn thuộc thẻ div cha
+      rootMargin: '0px',
+      threshold: 0.6, // Chỉ kích hoạt khi video chiếm từ 60% không gian màn hình trở lên
+    };
+
+    const handleIntersection = (entries: IntersectionObserverEntry[]) => {
+      entries.forEach((entry) => {
+        const video = entry.target.querySelector('video');
+        if (!video) return;
+
+        if (entry.isIntersecting) {
+          // Tự động phát khi lọt vào tầm nhìn tầm trung
+          video.play().catch(() => {
+            /* Phòng trường hợp trình duyệt chặn hoàn toàn */
+          });
+        } else {
+          // Tự động dừng và reset thời gian về 0 khi cuộn khuất tầm nhìn
+          video.pause();
+          video.currentTime = 0;
+        }
+      });
+    };
+
+    const observer = new IntersectionObserver(handleIntersection, observerOptions);
+    const videoElements = containerRef.current?.querySelectorAll('.video-card');
+    videoElements?.forEach((el) => observer.observe(el));
+
+    return () => observer.disconnect();
+  }, []);
+
   return (
-    <div className="flex flex-col flex-1 items-center justify-center bg-zinc-50 font-sans dark:bg-black">
-      <main className="flex flex-1 w-full max-w-3xl flex-col items-center justify-between py-32 px-16 bg-white dark:bg-black sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={100}
-          height={20}
-          priority
-        />
-        <div className="flex flex-col items-center gap-6 text-center sm:items-start sm:text-left">
-          <h1 className="max-w-xs text-3xl font-semibold leading-10 tracking-tight text-black dark:text-zinc-50">
-            To get started, edit the page.tsx file.
-          </h1>
-          <p className="max-w-md text-lg leading-8 text-zinc-600 dark:text-zinc-400">
-            Looking for a starting point or more instructions? Head over to{" "}
-            <a
-              href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Templates
-            </a>{" "}
-            or the{" "}
-            <a
-              href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Learning
-            </a>{" "}
-            center.
-          </p>
-        </div>
-        <div className="flex flex-col gap-4 text-base font-medium sm:flex-row">
-          <a
-            className="flex h-12 w-full items-center justify-center gap-2 rounded-full bg-foreground px-5 text-background transition-colors hover:bg-[#383838] dark:hover:bg-[#ccc] md:w-[158px]"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={16}
-              height={16}
-            />
-            Deploy Now
-          </a>
-          <a
-            className="flex h-12 w-full items-center justify-center rounded-full border border-solid border-black/[.08] px-5 transition-colors hover:border-transparent hover:bg-black/[.04] dark:border-white/[.145] dark:hover:bg-[#1a1a1a] md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Documentation
-          </a>
-        </div>
-      </main>
+    <div className="w-screen h-screen bg-black flex overflow-hidden select-none">
+      
+      {/* BONUS FEATURE: Thanh điều hướng Sidebar cố định bên trái trên bản Web PC */}
+      <Sidebar />
+
+      {/* CORE FEATURE: Bộ khung layout cuộn dọc chiếm toàn bộ khung hình, snap từng phần tử */}
+      <section 
+        ref={containerRef}
+        className="flex-1 h-full overflow-y-scroll snap-y snap-mandatory scrollbar-none"
+        style={{ scrollbarWidth: 'none' }}
+      >
+        {videos.map((video) => (
+          <VideoCard key={video.id} video={video} />
+        ))}
+      </section>
+
     </div>
   );
 }
