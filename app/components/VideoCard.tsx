@@ -15,42 +15,37 @@ interface VideoData {
 export default function VideoCard({ video }: { video: VideoData }) {
   const videoRef = useRef<HTMLVideoElement>(null);
   const [isPlaying, setIsPlaying] = useState(false);
-  const [isMuted, setIsMuted] = useState(true);
+  const [isMuted, setIsMuted] = useState(true); // 🌟 Bắt buộc mặc định là true để chạy tự động
 
   const [isLiked, setIsLiked] = useState(false);
   const [currentLikes, setCurrentLikes] = useState(video.likesCount);
 
-  // 🌟 Hàm xử lý Click sửa đổi: Đảm bảo kiểm tra mượt mà cả trạng thái mạng/tải video
+  // Xử lý Click vào video để Play/Pause
   const handleVideoClick = () => {
     if (!videoRef.current) return;
 
     if (videoRef.current.paused || videoRef.current.ended) {
       videoRef.current.play()
         .then(() => setIsPlaying(true))
-        .catch((err) => console.log("Trình duyệt chặn hoặc video chưa tải xong:", err));
+        .catch((err) => console.log("Trình duyệt chặn:", err));
     } else {
       videoRef.current.pause();
       setIsPlaying(false);
     }
   };
 
+  // 🌟 LOGIC QUAN TRỌNG: Bật/Tắt âm thanh (Volume)
   const toggleMute = (e: React.MouseEvent) => {
-    e.stopPropagation();
+    e.stopPropagation(); // 🌟 Ngăn sự kiện click bị lan ra ngoài làm dừng video
     if (!videoRef.current) return;
+
+    // Đảo ngược trạng thái muted của thẻ video thuần
     videoRef.current.muted = !videoRef.current.muted;
+    // Cập nhật State để thay đổi Icon hiển thị trên UI
     setIsMuted(videoRef.current.muted);
   };
 
-  const handleLikeClick = () => {
-    if (isLiked) {
-      setIsLiked(false);
-      setCurrentLikes(prev => prev - 1);
-    } else {
-      setIsLiked(true);
-      setCurrentLikes(prev => prev + 1);
-    }
-  };
-
+  // Đồng bộ trạng thái thực tế của video với State trong React
   useEffect(() => {
     const videoEl = videoRef.current;
     if (!videoEl) return;
@@ -73,32 +68,42 @@ export default function VideoCard({ video }: { video: VideoData }) {
         
         {/* KHUNG VIDEO 9:16 */}
         <div 
-          className="h-full aspect-[9/16] bg-zinc-950 rounded-2xl overflow-hidden relative shadow-2xl border border-zinc-850 group"
-          onClick={handleVideoClick} // 🌟 MẸO CHÍ MẠNG: Đưa onClick ra thẻ bọc ngoài cùng của video thay vì chỉ đặt ở thẻ <video>
+          className="h-full aspect-[9/16] bg-zinc-950 rounded-2xl overflow-hidden relative shadow-2xl border border-zinc-850 group cursor-pointer"
+          onClick={handleVideoClick}
         >
           <video
             ref={videoRef}
             src={video.videoUrl}
-            className="w-full h-full object-cover cursor-pointer"
+            className="w-full h-full object-cover"
             loop
-            muted={isMuted}
+            muted={isMuted} // 🌟 Liên kết trực tiếp với State isMuted
             playsInline
           />
 
           <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent pointer-events-none" />
 
-          {/* NÚT MUTE */}
+          {/* 🌟 NÚT ĐIỀU CHỈNH ÂM THANH (Nằm góc phải trên cùng của video) */}
           <button 
             onClick={toggleMute}
-            className="absolute top-4 right-4 p-2.5 bg-black/40 hover:bg-black/60 rounded-full backdrop-blur-sm text-white z-20 transition"
+            className="absolute top-4 right-4 p-3 bg-black/50 hover:bg-black/70 hover:scale-105 active:scale-95 rounded-full backdrop-blur-sm text-white z-30 transition-all duration-200 shadow-lg border border-white/10"
+            title={isMuted ? "Bật âm thanh" : "Tắt âm thanh"}
           >
-            {isMuted ? <VolumeX className="w-4 h-4" /> : <Volume2 className="w-4 h-4" />}
+            {isMuted ? (
+              <div className="flex items-center gap-1">
+                <VolumeX className="w-5 h-5 text-red-400" />
+                <span className="text-[10px] font-bold pr-1 uppercase text-red-400 tracking-wider">Muted</span>
+              </div>
+            ) : (
+              <div className="flex items-center gap-1">
+                <Volume2 className="w-5 h-5 text-green-400 animate-pulse" />
+                <span className="text-[10px] font-bold pr-1 uppercase text-green-400 tracking-wider">On</span>
+              </div>
+            )}
           </button>
 
-          {/* ICON PLAY KHI PAUSE */}
+          {/* ICON PLAY KHI VIDEO ĐANG PAUSE */}
           {!isPlaying && (
-            // 🌟 ĐÃ SỬA: Đảm bảo toàn bộ cụm này và các div con đều có pointer-events-none để không cản chuột
-            <div className="absolute inset-0 flex items-center justify-center bg-black/10 pointer-events-none z-10">
+            <div className="absolute inset-0 flex items-center justify-center bg-black/20 pointer-events-none z-10">
               <div className="p-4 bg-white/10 rounded-full backdrop-blur-md animate-ping absolute w-16 h-16 opacity-30 pointer-events-none" />
               <div className="p-4 bg-white/20 rounded-full backdrop-blur-md pointer-events-none">
                 <Play className="w-7 h-7 text-white fill-white pointer-events-none" />
@@ -106,7 +111,7 @@ export default function VideoCard({ video }: { video: VideoData }) {
             </div>
           )}
 
-          {/* TÊN TÁC GIẢ */}
+          {/* TÊN TÁC GIẢ & MÔ TẢ */}
           <div className="absolute bottom-5 left-5 right-5 text-white z-10 flex flex-col gap-1.5 pointer-events-none">
             <h3 className="font-bold text-lg tracking-wide">@{video.authorName}</h3>
             <p className="text-sm text-zinc-200 line-clamp-2 font-light leading-relaxed">
@@ -117,7 +122,10 @@ export default function VideoCard({ video }: { video: VideoData }) {
 
         {/* DẢI NÚT TƯƠNG TÁC BÊN PHẢI */}
         <div className="flex flex-col gap-4 items-center mb-6 z-10">
-          <button onClick={handleLikeClick} className="flex flex-col items-center group/btn">
+          <button onClick={() => {
+            if (isLiked) { setIsLiked(false); setCurrentLikes(p => p - 1); }
+            else { setIsLiked(true); setCurrentLikes(p => p + 1); }
+          }} className="flex flex-col items-center group/btn">
             <div className={`p-3 rounded-full transition-all duration-200 ${
               isLiked ? 'bg-red-500/10 text-red-500' : 'bg-zinc-900 text-zinc-300 hover:bg-zinc-800 hover:text-white'
             }`}>
